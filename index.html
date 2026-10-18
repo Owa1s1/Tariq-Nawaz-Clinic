@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Dr. Tariq Nawaz Clinic</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0f766e"><meta name="apple-mobile-web-app-title" content="Clinic">
+<style>
+:root{--bg:#f3f6f8;--card:#fff;--tx:#14202b;--mut:#66737f;--ln:#e2e8ed;--ac:#0f766e;--in:#15803d;--out:#c2410c;--wd:#7c3aed;--fe:#b45309;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1419;--card:#18212a;--tx:#e8eef3;--mut:#93a1ad;--ln:#26323d;--ac:#2dd4bf;--in:#4ade80;--out:#fb923c;--wd:#a78bfa;--fe:#fbbf24;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1419;--card:#18212a;--tx:#e8eef3;--mut:#93a1ad;--ln:#26323d;--ac:#2dd4bf;--in:#4ade80;--out:#fb923c;--wd:#a78bfa;--fe:#fbbf24;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;padding:0 14px 96px;max-width:640px;margin-inline:auto}
+h1{font-size:22px;margin:14px 0 2px}.sub{color:var(--mut);font-size:13px;margin-bottom:10px}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:12px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid .card{margin:0}
+.k{font-size:12px;color:var(--mut)}.v{font-size:20px;font-weight:700}
+.in{color:var(--in)}.out{color:var(--out)}.wd{color:var(--wd)}.fe{color:var(--fe)}
+input,select{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:10px;margin:4px 0}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--ac);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button{color:#06201c}}
+button.g{background:var(--bg);color:var(--tx);border:1px solid var(--ln)}
+.seg{display:flex;gap:6px;overflow-x:auto;margin-bottom:6px}.seg button{white-space:nowrap;padding:8px 12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--ln)}
+.row:first-child{border-top:0}.row small{color:var(--mut);display:block}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--ln);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+nav button{flex:1;background:none;color:var(--mut);padding:8px 2px;font-size:12px}
+nav button.on{color:var(--ac)}nav button b{display:block;font-size:20px}
+.low{border-color:var(--out)}.x{background:none;color:var(--mut);padding:4px 8px}
+.step button{padding:6px 10px;background:var(--bg);color:var(--tx);border:1px solid var(--ln)}
+.empty{color:var(--mut);text-align:center;padding:14px}
+#snack{display:none;position:fixed;left:12px;right:12px;bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:10px 14px;border-radius:12px;justify-content:space-between;align-items:center;z-index:20}
+#snack button{background:none;color:var(--ac);padding:2px 8px}
+#lock{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;align-items:center;justify-content:center}
+#print{display:none}
+@media print{:root:root:root{--bg:#fff;--card:#fff;--tx:#000;--mut:#444;--ln:#ccc;--in:#166534;--out:#9a3412;--wd:#5b21b6}body>*:not(#print){display:none!important}#print{display:block!important}body{padding:0;max-width:none}}
+</style></head><body>
+<h1 id="ttl">Dr. Tariq Nawaz Clinic</h1><div class="sub">By Dr. Owais Nawaz Khan · <span id="st">Local only</span></div>
+<div id="app"></div>
+<nav id="nav"></nav><div id="snack"></div><div id="print"></div>
+<div id="lock"><div class="card" style="width:min(320px,90%);text-align:center"><h1 style="font-size:18px">Dr. Tariq Nawaz Clinic</h1>
+<input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="Enter PIN" style="text-align:center" onkeydown="if(event.key=='Enter')tryPin()"><div id="lm" class="k"></div>
+<button style="width:100%;margin-top:6px" onclick="tryPin()">Unlock</button><button class="g" id="fb" style="width:100%;margin-top:6px;display:none" onclick="faceId()">Use Face ID</button></div></div>
+<script>
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>'Rs '+Math.round(n).toLocaleString('en-US');
+const uid=()=>Math.random().toString(36).slice(2,10);
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const T={income:'Income',expense:'Expense'};
+const CATS={income:['Fees','Meds Sold'],expense:['Restock','Clinic Expenses','Staff Salaries','Personal Withdrawals']};
+const NAMED={'Personal Withdrawals':'Receiver (who got the money)','Staff Salaries':'Staff member (optional)'};
+const IC=CATS.income,EC=CATS.expense;
+let S={tx:[],items:[]},tab='home',month=today().slice(0,7),filter='all',ft='income',open=null,ref=null,tm;
+let D={date:today(),amt:'',cat:'',name:'',note:''};
+const $=s=>document.querySelector(s),st=m=>$('#st').textContent=m;
+
+let CFG={};try{CFG=JSON.parse(localStorage.getItem('clinic_cfg'))||{}}catch(e){}
+const dirty=()=>localStorage.getItem('clinic_dirty');let bt,busy=false;
+function saveCfg(){localStorage.setItem('clinic_cfg',JSON.stringify(CFG));if(CFG.url&&CFG.key){localStorage.setItem('clinic_dirty','1');backup()}}
+async function backup(manual){
+  if(!CFG.url||!CFG.key){if(manual)alert('Enter the backup URL and secret key first');return}
+  if(!S.tx.length&&!S.items.length)return;
+  if(!navigator.onLine){st('Offline – backup waiting');return}
+  if(busy)return;busy=true;
+  try{const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,data:S})});
+    const j=await r.json();if(!j.ok)throw new Error(j.error||'rejected');
+    localStorage.removeItem('clinic_dirty');CFG.last=new Date().toISOString();localStorage.setItem('clinic_cfg',JSON.stringify(CFG));
+    st('Backed up to Drive · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));if(manual)alert('Backed up to Google Drive')}
+  catch(e){st('Backup failed – will retry');if(manual)alert('Backup failed: '+e.message)}
+  busy=false;if(tab=='home'&&!document.activeElement.matches('input'))render();
+}
+function queue(){localStorage.setItem('clinic_dirty','1');clearTimeout(bt);bt=setTimeout(backup,4000)}
+addEventListener('online',()=>{if(dirty())backup()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&dirty())backup()});
+setInterval(()=>{if(dirty())backup()},120000);
+async function restore(){
+  if(!CFG.url||!CFG.key)return alert('Set up backup first');
+  if(!confirm('Replace the data on this phone with the latest Drive backup?'))return;
+  try{const r=await fetch(CFG.url+(CFG.url.includes('?')?'&':'?')+'key='+encodeURIComponent(CFG.key)),j=await r.json();
+    if(!j.ok||!j.data||!j.data.tx)throw new Error(j.error||'no backup found');
+    S=j.data;localStorage.setItem('clinic',JSON.stringify(S));localStorage.removeItem('clinic_dirty');render();alert('Restored')}
+  catch(e){alert('Restore failed: '+e.message)}
+}
+function bk(){return `<h2>Google Drive backup</h2><div class="card"><div class="k">Status: ${CFG.url&&CFG.key?(dirty()?'waiting to back up':'up to date'):'not set up'}${CFG.last?' · last '+new Date(CFG.last).toLocaleString():''}</div>
+  <input placeholder="Backup URL (from Apps Script)" value="${esc(CFG.url||'')}" onchange="CFG.url=this.value.trim();saveCfg()">
+  <input placeholder="Secret key" value="${esc(CFG.key||'')}" onchange="CFG.key=this.value.trim();saveCfg()">
+  <div class="f2"><button onclick="backup(true)">Back up now</button><button class="g" onclick="restore()">Restore latest</button></div>
+  <div class="sub">Backs up automatically seconds after every change, and as soon as internet returns. Runs while the app is open.</div></div>`}
+let LANG=localStorage.getItem('clinic_lang')||'en';
+const UR={"Home": "ہوم", "Ledger": "کھاتہ", "Stock": "اسٹاک", "People": "افراد", "Dashboard · all time": "ڈیش بورڈ · مجموعی", "Charts": "چارٹس", "Income vs expenses · last 6 months": "آمدنی بمقابلہ اخراجات · پچھلے 6 ماہ", "Where the money goes (all time)": "رقم کہاں خرچ ہوئی (مجموعی)", "Income sources (all time)": "آمدنی کے ذرائع (مجموعی)", "Low stock": "کم اسٹاک", "Expiring soon": "جلد ختم المیعاد", "Monthly summary": "ماہانہ خلاصہ", "INCOME": "آمدنی", "EXPENSES": "اخراجات", "Total income": "کل آمدنی", "Total expenses": "کل اخراجات", "Net (income − expenses)": "خالص (آمدنی − اخراجات)", "Fees": "فیس", "Meds Sold": "ادویات کی فروخت", "Restock": "اسٹاک کی خریداری", "Clinic Expenses": "کلینک کے اخراجات", "Staff Salaries": "عملے کی تنخواہیں", "Personal Withdrawals": "ذاتی رقم کی نکاسی", "Income": "آمدنی", "Expense": "خرچ", "All": "سب", "Amount": "رقم", "Note (optional)": "نوٹ (اختیاری)", "Add entry": "اندراج شامل کریں", "Save changes": "تبدیلیاں محفوظ کریں", "Cancel": "منسوخ", "No entries this month": "اس ماہ کوئی اندراج نہیں", "Receiver (who got the money)": "وصول کنندہ (رقم کس کو ملی)", "Staff member (optional)": "عملے کا رکن (اختیاری)", "Add item / medicine": "آئٹم / دوا شامل کریں", "Add item": "آئٹم شامل کریں", "Sell": "فروخت", "Edit": "ترمیم", "Opening quantity": "ابتدائی مقدار", "Buy price / unit": "خرید قیمت / یونٹ", "Sell price / unit": "فروخت قیمت / یونٹ", "Low-stock alert at": "کم اسٹاک الرٹ", "Expiry date (optional)": "میعاد ختم ہونے کی تاریخ (اختیاری)", "No items yet": "ابھی کوئی آئٹم نہیں", "Name (e.g. Paracetamol 500mg)": "نام (مثلاً پیراسیٹامول 500mg)", "Settings": "ترتیبات", "Language": "زبان", "Print report": "رپورٹ پرنٹ", "Print / save PDF": "پرنٹ / PDF", "App lock": "ایپ لاک", "Google Drive backup": "گوگل ڈرائیو بیک اپ", "Back up now": "ابھی بیک اپ کریں", "Restore latest": "تازہ ترین بحال کریں", "Spreadsheet import / export": "اسپریڈشیٹ امپورٹ / ایکسپورٹ", "Export ledger": "کھاتہ ایکسپورٹ", "Export stock": "اسٹاک ایکسپورٹ", "How it works": "یہ کیسے کام کرتا ہے", "Personal withdrawals by receiver": "ذاتی رقم کی نکاسی بلحاظ وصول کنندہ", "Staff salaries by person": "عملے کی تنخواہیں بلحاظ فرد", "Nothing recorded yet": "ابھی کچھ درج نہیں", "All stock levels OK": "تمام اسٹاک ٹھیک ہے", "Nothing expiring soon": "کچھ بھی جلد ختم المیعاد نہیں"};
+const L=k=>LANG=='ur'&&UR[k]||k;
+function tr(){
+  document.documentElement.dir=LANG=='ur'?'rtl':'ltr';$('#ttl').textContent=LANG=='ur'?'ڈاکٹر طارق نواز کلینک':'Dr. Tariq Nawaz Clinic';
+  if(LANG!='ur')return;
+  for(const root of [$('#app'),$('#nav')]){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
+    while(n=w.nextNode()){const k=n.nodeValue.trim();if(UR[k])n.nodeValue=n.nodeValue.replace(k,UR[k])}
+    root.querySelectorAll('[placeholder]').forEach(e=>{if(UR[e.placeholder])e.placeholder=UR[e.placeholder]})}
+}
+function setLang(){LANG=LANG=='ur'?'en':'ur';localStorage.setItem('clinic_lang',LANG);render()}
+const dl=d=>Math.ceil((new Date(d)-new Date(today()))/864e5);
+// ----- undo
+let snap=null,sk;
+function snapshot(msg){snap=JSON.stringify(S);const e=$('#snack');e.innerHTML=msg+' <button onclick="undo()">'+L('Undo')+'</button>';e.style.display='flex';clearTimeout(sk);sk=setTimeout(()=>e.style.display='none',7000)}
+function undo(){if(snap){S=JSON.parse(snap);snap=null;save();render()}$('#snack').style.display='none'}
+// ----- edit entry
+let editId=null;
+function edit(id){const x=S.tx.find(t=>t.id==id);if(!x)return;editId=id;ft=x.type;D={date:x.date,amt:String(x.amt),cat:x.cat,name:x.name||'',note:x.note||''};tab='ledger';render();scrollTo(0,0)}
+function cancelEdit(){editId=null;D={...D,amt:'',note:'',name:''};render()}
+// ----- lock (PIN + Face ID)
+let LK={};try{LK=JSON.parse(localStorage.getItem('clinic_lock'))||{}}catch(e){}
+const saveLK=()=>localStorage.setItem('clinic_lock',JSON.stringify(LK));
+const hash=async p=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode((LK.salt||'')+p)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+function showLock(){if(!LK.h)return;$('#lock').style.display='flex';$('#pin').value='';$('#lm').textContent='';$('#fb').style.display=LK.cred?'block':'none'}
+const unlock=()=>$('#lock').style.display='none';
+async function tryPin(){if(await hash($('#pin').value)==LK.h)unlock();else{$('#lm').textContent='Wrong PIN';$('#pin').value=''}}
+async function savePin(){const p=$('#np').value;if(!/^\d{4,6}$/.test(p))return alert('PIN must be 4–6 digits');LK.salt=String(crypto.getRandomValues(new Uint32Array(1))[0]);LK.h=await hash(p);saveLK();render();alert('PIN saved')}
+function removeLock(){LK={};localStorage.removeItem('clinic_lock');render()}
+async function enableFace(){
+  if(!LK.h)return alert('Set a PIN first');
+  try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'Clinic'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'clinic',displayName:'Clinic'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});
+    LK.cred=btoa(String.fromCharCode(...new Uint8Array(c.rawId)));saveLK();render();alert('Face ID enabled')}
+  catch(e){alert('Face ID is not available here. The PIN still works.')}
+}
+async function faceId(){
+  try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:Uint8Array.from(atob(LK.cred),c=>c.charCodeAt(0))}],userVerification:'required',timeout:60000}});unlock()}
+  catch(e){$('#lm').textContent='Face ID failed – use your PIN'}
+}
+let lockAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)lockAt=Date.now();else if(LK.h&&Date.now()-lockAt>60000)showLock()});
+// ----- charts
+function charts(){
+  const ms=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);ms.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
+  const V=ms.map(m=>{const l=S.tx.filter(x=>x.date.startsWith(m));return[tot(l,'income'),tot(l,'expense')]}),mx=Math.max(1,...V.flat());
+  const bars=V.map(([a,b],i)=>{const x=24+i*46,h=v=>v/mx*100;return `<rect x="${x}" y="${115-h(a)}" width="14" height="${h(a)}" rx="2" fill="var(--in)"/><rect x="${x+16}" y="${115-h(b)}" width="14" height="${h(b)}" rx="2" fill="var(--out)"/><text x="${x+15}" y="132" font-size="10" text-anchor="middle" fill="var(--mut)">${new Date(ms[i]+'-01T00:00').toLocaleDateString('en-GB',{month:'short'})}</text>`}).join('');
+  const hb=(cats,k)=>{const t=Math.max(1,...cats.map(c=>by(S.tx,c)));return cats.map(c=>`<div style="margin:6px 0"><div class="row" style="border:0;padding:0"><small><span>${c}</span></small><small>${fmt(by(S.tx,c))}</small></div><div style="height:8px;border-radius:4px;background:var(--bg)"><div style="height:8px;border-radius:4px;width:${by(S.tx,c)/t*100}%;background:var(${k})"></div></div></div>`).join('')};
+  return `<h2>Charts</h2><div class="card"><div class="k">Income vs expenses · last 6 months</div><svg viewBox="0 0 300 138" width="100%" direction="ltr">${bars}</svg><div class="k"><span style="color:var(--in)">■</span> Income &nbsp; <span style="color:var(--out)">■</span> Expense</div></div>
+  <div class="card"><div class="k">Where the money goes (all time)</div>${hb(EC,'--out')}</div><div class="card"><div class="k">Income sources (all time)</div>${hb(IC,'--in')}</div>`}
+// ----- print + settings
+function printReport(){
+  const m=month,l=S.tx.filter(x=>x.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date));
+  $('#print').innerHTML=`<h1>Dr. Tariq Nawaz Clinic</h1><div class="sub">By Dr. Owais Nawaz Khan · Report: ${mName(m)}</div>${brk(l)}<h2>Entries</h2><div class="card">${l.map(x=>`<div class="row"><div>${x.date} · ${esc(x.cat)}${x.name?' · '+esc(x.name):''}<small>${esc(x.note||'')}</small></div><b>${x.type=='income'?'+':'−'}${fmt(x.amt)}</b></div>`).join('')||'No entries'}</div>`;
+  window.print();
+}
+function settings(){return `<h2>Settings</h2><div class="card"><div class="row"><span>Language</span><button class="g" onclick="setLang()">${LANG=='ur'?'English':'اردو'}</button></div>
+  <b>Print report</b><div class="f2"><input type="month" value="${month}" onchange="month=this.value||month"><button onclick="printReport()">Print / save PDF</button></div></div>
+  <div class="card"><b>App lock</b><div class="k">${LK.h?'PIN is on'+(LK.cred?' · Face ID on':''):'No lock set'}</div>
+  <input id="np" type="password" inputmode="numeric" maxlength="6" placeholder="New PIN (4–6 digits)"><div class="f2"><button onclick="savePin()">${LK.h?'Change PIN':'Set PIN'}</button><button class="g" onclick="enableFace()">Enable Face ID</button></div>${LK.h?'<button class="g" style="width:100%;margin-top:6px" onclick="removeLock()">Turn lock off</button>':''}
+  <div class="sub" style="margin-top:6px">Forgot the PIN? Reinstall the app and use “Restore latest” from your Drive backup.</div></div>`}
+function save(){try{localStorage.setItem('clinic',JSON.stringify(S))}catch(e){st('Could not save on this device!')}queue()}
+function init(){
+  try{const d=JSON.parse(localStorage.getItem('clinic'));if(d&&d.tx)S=d}catch(e){}
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+  showLock();render();st(CFG.url?'Backup on':'Backup not set up');if(dirty())backup();
+}
+const sum=(l,t)=>l.filter(x=>x.type==t).reduce((a,x)=>a+x.amt,0);
+const inMonth=()=>S.tx.filter(x=>x.date.startsWith(month));
+
+const by=(l,c)=>l.filter(x=>x.cat==c).reduce((a,x)=>a+x.amt,0);
+const tot=(l,t)=>l.filter(x=>x.type==t).reduce((a,x)=>a+x.amt,0);
+const mName=m=>new Date(m+'-01T00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+function mig(){let c=false;S.tx.forEach(x=>{const o=x.type+'|'+x.cat;
+  if(x.type=='fee'){x.type='expense';x.cat='Staff Salaries'}
+  else if(x.type=='withdrawal'){x.type='expense';x.cat='Personal Withdrawals'}
+  else if(x.type=='income'){if(!IC.includes(x.cat))x.cat=/pharm|med/i.test(x.cat||'')?'Meds Sold':'Fees'}
+  else if(!EC.includes(x.cat))x.cat=/stock|medic/i.test(x.cat||'')?'Restock':/salar/i.test(x.cat||'')?'Staff Salaries':'Clinic Expenses';
+  if(x.type+'|'+x.cat!=o)c=true});if(c)save()}
+function rcv(l){const g={};l.filter(x=>x.cat=='Personal Withdrawals').forEach(x=>{const n=x.name||'Unnamed';g[n]=(g[n]||0)+x.amt});
+  return Object.entries(g).sort((a,b)=>b[1]-a[1]).map(([n,a])=>`<div class="row" style="padding:3px 0;padding-inline-start:14px;border:0"><small>↳ ${esc(n)}</small><small class="wd">${fmt(a)}</small></div>`).join('')}
+function brk(l){
+  const hp=l.some(x=>x.uc!=null),mp=l.filter(x=>x.uc!=null).reduce((a,x)=>a+x.amt-x.q*x.uc,0),i=tot(l,'income'),e=tot(l,'expense'),r=(c,k)=>`<div class="row"><span>${c}</span><b class="${k}">${fmt(by(l,c))}</b></div>`;
+  return `<div class="card"><div class="k">INCOME</div>${IC.map(c=>r(c,'in')).join('')}<div class="row"><b>Total income</b><b class="in">${fmt(i)}</b></div>${hp?`<div class="row"><small>Profit on meds sold (sell − buy price)</small><small class="in">${fmt(mp)}</small></div>`:''}</div>
+  <div class="card"><div class="k">EXPENSES</div>${EC.map(c=>r(c,c=='Personal Withdrawals'?'wd':'out')+(c=='Personal Withdrawals'?rcv(l):'')).join('')}<div class="row"><b>Total expenses</b><b class="out">${fmt(e)}</b></div></div>
+  <div class="card"><div class="row"><b>Net (income − expenses)</b><b class="${i<e?'out':'in'}">${fmt(i-e)}</b></div></div>`}
+function home(){
+  const low=S.items.filter(x=>x.qty<=x.min),ex=S.items.filter(x=>x.exp&&dl(x.exp)<=30).sort((a,b)=>a.exp.localeCompare(b.exp)),cur=today().slice(0,7);
+  const months=[...new Set([cur,...S.tx.map(x=>x.date.slice(0,7))])].sort().reverse();
+  return `<h2>Dashboard · all time</h2>${brk(S.tx)}${charts()}
+  <h2>Low stock</h2>${low.length?low.map(x=>`<div class="card low"><b>${esc(x.name)}</b> – ${x.qty} ${esc(x.unit)} left (min ${x.min})</div>`).join(''):'<div class="empty">All stock levels OK</div>'}
+  <h2>Expiring soon</h2>${ex.length?ex.map(x=>`<div class="card low"><b>${esc(x.name)}</b> – ${dl(x.exp)<0?'EXPIRED':'expires in '+dl(x.exp)+' days'} (${x.exp})</div>`).join(''):'<div class="empty">Nothing expiring soon</div>'}
+  <h2 style="font-size:16px;color:var(--tx)">Monthly summary</h2>${months.map(m=>`<h2>${mName(m)}</h2>${brk(S.tx.filter(x=>x.date.startsWith(m)))}`).join('')}`+data();
+}
+
+function ledger(){
+  const nm=ft=='expense'&&NAMED[D.cat];
+  let l=inMonth().filter(x=>filter=='all'||x.cat==filter).sort((a,b)=>b.date.localeCompare(a.date));
+  const names=[...new Set(S.tx.filter(x=>x.cat==D.cat&&x.name).map(x=>x.name))];
+  return `<input type="month" value="${month}" onchange="month=this.value||month;render()">
+  <div class="card"><div class="seg">${Object.keys(T).map(k=>`<button class="${k==ft?'':'g'}" onclick="setT('${k}')">${T[k]}</button>`).join('')}</div>
+  <div class="f2"><input type="date" value="${D.date}" oninput="D.date=this.value"><input type="number" inputmode="decimal" placeholder="Amount" value="${D.amt}" oninput="D.amt=this.value"></div>
+  <select onchange="D.cat=this.value;D.name='';render()">${CATS[ft].map(c=>`<option value="${c}" ${c==D.cat?'selected':''}>${c}</option>`).join('')}</select>
+  ${nm?`<input list="nl" placeholder="${nm}" value="${esc(D.name)}" oninput="D.name=this.value"><datalist id="nl">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`:''}
+  <input placeholder="Note (optional)" value="${esc(D.note)}" oninput="D.note=this.value">
+  ${editId?'<div class="f2" style="margin-top:6px"><button onclick="addTx()">Save changes</button><button class="g" onclick="cancelEdit()">Cancel</button></div>':'<button style="width:100%;margin-top:6px" onclick="addTx()">Add entry</button>'}</div>
+  <div class="seg">${['all',...IC,...EC].map(k=>`<button class="${k==filter?'':'g'}" onclick="filter='${k}';render()">${k=='all'?'All':k}</button>`).join('')}</div>
+  <div class="card">${l.length?l.map(x=>`<div class="row"><div><b><span>${esc(x.cat)}</span>${x.name?' · '+esc(x.name):''}</b> <small>${x.date}${x.note?' · '+esc(x.note):''}</small></div>
+  <div><b class="${x.type=='income'?'in':x.cat=='Personal Withdrawals'?'wd':'out'}">${x.type=='income'?'+':'−'}${fmt(x.amt)}</b><button class="x" onclick="edit('${x.id}')">✎</button><button class="x" onclick="delTx('${x.id}')">✕</button></div></div>`).join(''):'<div class="empty">No entries this month</div>'}</div>`;
+}
+
+let act=null;
+function stock(){
+  const val=S.items.reduce((a,x)=>a+x.qty*x.cost,0),sv=S.items.reduce((a,x)=>a+x.qty*(x.price||0),0);
+  const panel=x=>{const m=act.mode,inp=(id,ph,v)=>`<input id="${id}" type="number" inputmode="decimal" placeholder="${ph}" value="${v}">`;
+    if(m=='edit')return `<div style="margin-top:6px"><input id="a1" placeholder="Name" value="${esc(x.name)}"><div class="f2"><input id="a2" placeholder="Unit" value="${esc(x.unit)}">${inp('a3','Low-stock alert at',x.min)}</div><label class="k">Expiry date (optional)<input id="a4" type="date" value="${x.exp||''}"></label><div class="f2">${inp('a5','Buy price',x.cost)}${inp('a6','Sell price',x.price||'')}</div></div><button style="width:100%" onclick="doAct()">Save changes</button>`;
+    return `<div class="f2" style="margin-top:6px">${inp('a1','Quantity',1)}${inp('a2',m=='sell'?'Sell price / unit':'Buy price / unit',m=='sell'?(x.price||''):(x.cost||''))}</div><button style="width:100%" onclick="doAct()">${m=='sell'?'Record sale (adds Meds Sold income)':'Record restock (adds Restock expense)'}</button>`};
+  return `<div class="card"><b>Add item / medicine</b>
+  <input id="in" placeholder="Name (e.g. Paracetamol 500mg)"><div class="f2"><input id="iu" placeholder="Unit (tabs, vials…)"><input id="iq" type="number" inputmode="decimal" placeholder="Opening quantity"></div>
+  <div class="f2"><input id="ic" type="number" inputmode="decimal" placeholder="Buy price / unit"><input id="ip" type="number" inputmode="decimal" placeholder="Sell price / unit"></div>
+  <input id="im" type="number" inputmode="decimal" placeholder="Low-stock alert at"><label class="k">Expiry date (optional)<input id="ie" type="date"></label>
+  <button style="width:100%;margin-top:6px" onclick="addItem()">Add item</button></div>
+  <h2>Stock · bought for ${fmt(val)} · sells for ${fmt(sv)}</h2><div class="card">${S.items.length?S.items.map(x=>{const p=(x.price||0)-x.cost;return `<div style="padding:9px 0;border-top:1px solid var(--ln)">
+  <div class="row" style="border:0;padding:0"><div><b class="${x.qty<=x.min?'out':''}">${esc(x.name)}</b><small>${x.qty} ${esc(x.unit)}${x.qty<=x.min?' · LOW':''}</small><small>Buy ${fmt(x.cost)} · Sell ${x.price?fmt(x.price):'not set'}${x.price?' · profit '+fmt(p)+'/unit':''}</small>${x.exp?`<small class="${dl(x.exp)<=30?'out':''}">Expiry ${x.exp}${dl(x.exp)<0?' · EXPIRED':dl(x.exp)<=30?' · '+dl(x.exp)+' days left':''}</small>`:''}</div><button class="x" onclick="delItem('${x.id}')">✕</button></div>
+  <div class="step" style="margin-top:6px"><button onclick="setAct('${x.id}','sell')">Sell</button> <button onclick="setAct('${x.id}','buy')">Restock</button> <button onclick="setAct('${x.id}','edit')">Edit</button> <button onclick="adj('${x.id}',-1)">−1</button> <button onclick="adj('${x.id}',1)">+1</button></div>
+  ${act&&act.id==x.id?panel(x):''}</div>`}).join(''):'<div class="empty">No items yet</div>'}</div>
+  <div class="sub">Sell and Restock update the count and log income or expense for you. −1/+1 only correct the count (no money recorded).</div>`;
+}
+function setAct(id,m){act=act&&act.id==id&&act.mode==m?null:{id,mode:m};render()}
+function doAct(){
+  const x=S.items.find(i=>i.id==act.id),a=parseFloat($('#a1').value),b=parseFloat($('#a2').value),m=act.mode;if(!x)return;
+  if(m=='edit'){const nm=$('#a1').value.trim();if(!nm)return alert('Enter a name');x.name=nm;x.unit=$('#a2').value.trim()||'units';x.min=+$('#a3').value||0;x.exp=$('#a4').value;x.cost=+$('#a5').value||0;x.price=+$('#a6').value||0}
+  else{if(!(a>0)||!(b>=0))return alert('Enter quantity and price');
+    if(m=='sell'&&a>x.qty)return alert('Only '+x.qty+' '+x.unit+' in stock');
+    const base={id:uid(),date:today(),amt:a*b,name:'',note:a+' × '+x.name,item:x.id,q:a};
+    if(m=='sell'){x.qty-=a;S.tx.push({...base,type:'income',cat:'Meds Sold',uc:x.cost})}
+    else{x.qty+=a;x.cost=b;S.tx.push({...base,type:'expense',cat:'Restock'})}}
+  act=null;save();render();
+}
+
+function people(){
+  const A=l=>l.reduce((a,x)=>a+x.amt,0);
+  const sec=(c,title,cls)=>{
+    const g={};S.tx.filter(x=>x.cat==c).forEach(x=>{const n=x.name||'Unnamed';(g[n]=g[n]||[]).push(x)});
+    const rows=Object.entries(g).sort((a,b)=>A(b[1])-A(a[1]));
+    return `<h2>${title}</h2><div class="card">${rows.length?rows.map(([n,l])=>{const k=encodeURIComponent(c+n).replace(/'/g,'%27'),mo=l.filter(x=>x.date.startsWith(month));
+      return `<div class="row" onclick="open=open=='${k}'?null:'${k}';render()"><div><b>${esc(n)}</b><small>This month ${fmt(A(mo))}</small></div><b class="${cls}">${fmt(A(l))}<small style="text-align:right">all time</small></b></div>`+
+      (open==k?l.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class="row" style="padding-left:12px"><small>${x.date}${x.note?' · '+esc(x.note):''}</small><span>${fmt(x.amt)}</span></div>`).join(''):'')}).join(''):'<div class="empty">Nothing recorded yet</div>'}</div>`};
+  return `<input type="month" value="${month}" onchange="month=this.value||month;render()">`+sec('Personal Withdrawals','Personal withdrawals by receiver','wd')+sec('Staff Salaries','Staff salaries by person','out');
+}
+function data(){
+  return settings()+bk()+`<h2>Spreadsheet import / export</h2><div class="card"><div class="f2"><button class="g" onclick="exp('tx')">Export ledger</button><button class="g" onclick="exp('stock')">Export stock</button></div>
+  <label class="k" style="display:block;margin-top:8px">Import a .csv file (ledger or stock)<input type="file" accept=".csv,text/csv" onchange="imp(this)"></label></div>
+  <h2>How it works</h2><div class="card" style="font-size:14px">
+  <p><b>Ledger:</b> Income is either <b>Fees</b> or <b>Meds Sold</b>. Expenses are <b>Restock</b>, <b>Clinic Expenses</b>, <b>Staff Salaries</b> or <b>Personal Withdrawals</b>. A withdrawal needs the receiver’s name; salaries can carry the staff member’s name.</p>
+  <p><b>Home:</b> shows every income type and every expense type separately (all time), then a separate summary for each month. Net = income − all expenses.</p>
+  <p><b>People:</b> withdrawals grouped by receiver and salaries grouped by person, with monthly and all-time totals.</p>
+  <p><b>Stock:</b> give each medicine a buy price and a sell price. <b>Sell</b> reduces the count and logs Meds Sold income; <b>Restock</b> adds to the count and logs a Restock expense. Deleting such an entry puts the count back.</p>
+  <p><b>Spreadsheets:</b> exports are .csv files for Excel, Numbers or Google Sheets. Ledger columns: id, date (YYYY-MM-DD), type (income/expense), category, name, amount, note. Stock columns: id, name, unit, qty, min, cost (buy price), price (sell price), exp (expiry date, optional). Import adds new rows and skips ones already present; stock items with the same name or id are updated.</p>
+  <p><b>Saving:</b> data is stored on this phone and copied to your Google Drive automatically when online.</p></div>`;
+}
+const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+const toCSV=(h,rows)=>'\ufeff'+[h.join(','),...rows.map(r=>h.map(k=>q(r[k])).join(','))].join('\r\n');
+function parseCSV(t){t=t.replace(/^\ufeff/,'');const out=[];let r=[],c='',inq=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(inq){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else inq=false}else c+=ch}
+    else if(ch=='"')inq=true;else if(ch==','){r.push(c);c=''}
+    else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';if(r.some(x=>x!==''))out.push(r);r=[]}
+    else c+=ch}
+  r.push(c);if(r.some(x=>x!==''))out.push(r);return out}
+function exp(kind){
+  const csv=kind=='tx'?toCSV(['id','date','type','category','name','amount','note'],S.tx.map(x=>({...x,amount:x.amt,category:x.cat}))):toCSV(['id','name','unit','qty','min','cost','price','exp'],S.items);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=(kind=='tx'?'clinic-ledger-':'clinic-stock-')+today()+'.csv';document.body.appendChild(a);a.click();a.remove();st('Exported');
+}
+function imp(inp){
+  const f=inp.files[0];if(!f)return;const fr=new FileReader();
+  fr.onload=()=>{
+    const rows=parseCSV(fr.result);if(rows.length<2)return alert('File is empty');
+    const h=rows.shift().map(x=>x.trim().toLowerCase());
+    const o=rows.map(r=>Object.fromEntries(h.map((k,i)=>[k,(r[i]||'').trim()])));
+    let a=0,s=0;
+    if(h.includes('type')&&h.includes('amount')){
+      const M={income:'income',expense:'expense',fee:'fee',doctorfee:'fee',withdrawal:'withdrawal'};
+      o.forEach(x=>{const type=M[x.type.toLowerCase().replace(/\s/g,'')],amt=parseFloat(x.amount);
+        if(!type||!(amt>0)||!/^\d{4}-\d{2}-\d{2}$/.test(x.date)){s++;return}
+        const id=x.id||uid();if(S.tx.some(t=>t.id==id)){s++;return}
+        const named=type=='fee'||type=='withdrawal';
+        S.tx.push({id,type,date:x.date,amt,cat:x.category||'',name:x.name||'',note:x.note||''});a++})}
+    else if(h.includes('name')&&h.includes('qty')){
+      o.forEach(x=>{if(!x.name){s++;return}
+        const it=S.items.find(i=>(x.id&&i.id==x.id)||i.name.toLowerCase()==x.name.toLowerCase());
+        if(it){it.qty=+x.qty||0;if(x.min)it.min=+x.min;if(x.cost)it.cost=+x.cost;if(x.price)it.price=+x.price;if(/^\d{4}-\d{2}-\d{2}$/.test(x.exp))it.exp=x.exp}
+        else S.items.push({id:x.id||uid(),name:x.name,unit:x.unit||'units',qty:+x.qty||0,min:+x.min||0,cost:+x.cost||0,price:+x.price||0,exp:/^\d{4}-\d{2}-\d{2}$/.test(x.exp)?x.exp:''});a++})}
+    else return alert('Unrecognised file. Use the same columns as an export.');
+    save();render();alert('Imported '+a+' new, skipped or updated '+s+'.')};
+  fr.readAsText(f);inp.value='';
+}
+function render(){
+  mig();
+  $('#app').innerHTML={home,ledger,stock,people}[tab]();
+  $('#nav').innerHTML=[['home','◔','Home'],['ledger','☰','Ledger'],['stock','✚','Stock'],['people','☻','People']].map(([k,i,n])=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';render();scrollTo(0,0)"><b>${i}</b>${n}</button>`).join('');
+  tr();
+}
+function setT(k){ft=k;D.cat=CATS[k][0];D.name='';render()}
+function addTx(){
+  const amt=parseFloat(D.amt);if(!(amt>0))return alert('Enter an amount');
+  const nm=ft=='expense'&&NAMED[D.cat]?D.name.trim():'';
+  if(D.cat=='Personal Withdrawals'&&!nm)return alert('Enter who received the money');
+  const o={type:ft,date:D.date||today(),amt,cat:D.cat,name:nm,note:D.note.trim()};
+  if(editId){Object.assign(S.tx.find(t=>t.id==editId)||{},o);editId=null}else S.tx.push({id:uid(),...o});
+  D.amt='';D.note='';save();render();
+}
+function delTx(id){{snapshot('Entry deleted');const t=S.tx.find(x=>x.id==id),it=t&&t.item&&S.items.find(i=>i.id==t.item);if(it)it.qty=Math.max(0,it.qty+(t.type=='income'?t.q:-t.q));S.tx=S.tx.filter(x=>x.id!=id);save();render()}}
+function addItem(){
+  const g=i=>$('#'+i).value.trim(),n=g('in');if(!n)return alert('Enter a name');
+  S.items.push({id:uid(),name:n,unit:g('iu')||'units',qty:+g('iq')||0,min:+g('im')||0,cost:+g('ic')||0,price:+g('ip')||0,exp:g('ie')});save();render();
+}
+function adj(id,d){const x=S.items.find(i=>i.id==id);x.qty=Math.max(0,x.qty+d);save();render()}
+function delItem(id){{snapshot('Item removed');S.items=S.items.filter(x=>x.id!=id);save();render()}}
+D.cat=CATS.income[0];init();
+</script></body></html>
