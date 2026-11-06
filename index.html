@@ -60,6 +60,7 @@ let CFG={};try{CFG=JSON.parse(localStorage.getItem('clinic_cfg'))||{}}catch(e){}
 const dirty=()=>localStorage.getItem('clinic_dirty');let bt,busy=false;
 function saveCfg(){localStorage.setItem('clinic_cfg',JSON.stringify(CFG));if(CFG.url&&CFG.key){localStorage.setItem('clinic_dirty','1');backup()}}
 async function backup(manual){
+  if(SC.url&&SC.key)return;
   if(!CFG.url||!CFG.key){if(manual)alert('Enter the backup URL and secret key first');return}
   if(!S.tx.length&&!S.items.length)return;
   if(!navigator.onLine){st('Offline – backup waiting');return}
@@ -71,10 +72,70 @@ async function backup(manual){
   catch(e){st('Backup failed – will retry');if(manual)alert('Backup failed: '+e.message)}
   busy=false;if(tab=='home'&&!document.activeElement.matches('input'))render();
 }
-function queue(){localStorage.setItem('clinic_dirty','1');clearTimeout(bt);bt=setTimeout(backup,4000)}
-addEventListener('online',()=>{if(dirty())backup()});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&dirty())backup()});
-setInterval(()=>{if(dirty())backup()},120000);
+function queue(){localStorage.setItem('clinic_dirty','1');clearTimeout(bt);bt=setTimeout(()=>{if(SC.url&&SC.key)syncNow();else backup()},3000)}
+addEventListener('online',()=>{if(SC.url&&SC.key)syncNow();else if(dirty())backup()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(SC.url&&SC.key)syncNow();else if(dirty())backup()}});
+setInterval(()=>{if(SC.url&&SC.key)syncNow();else if(dirty())backup()},60000);
+
+/* ===== Online sync (Cloudflare) – every entry is stored separately and merged by id ===== */
+let SC={};try{SC=JSON.parse(localStorage.getItem('clinic_sync'))||{}}catch(e){}
+if(!SC.url)SC.url='https://clinic-sync.qanun.workers.dev';
+let SNAP={};try{SNAP=JSON.parse(localStorage.getItem('clinic_snap'))||{}}catch(e){}
+const saveSC=()=>localStorage.setItem('clinic_sync',JSON.stringify(SC));
+const saveSNAP=()=>{try{localStorage.setItem('clinic_snap',JSON.stringify(SNAP))}catch(e){}};
+function setSC(f,v){SC[f]=v.trim();saveSC();if(SC.url&&SC.key)syncNow(true)}
+function localMap(){const m={};S.tx.forEach(x=>m['tx:'+x.id]=JSON.stringify(x));S.items.forEach(x=>m['item:'+x.id]=JSON.stringify(x));return m}
+const splitKey=k=>{const i=k.indexOf(':');return [k.slice(0,i),k.slice(i+1)]};
+let syncBusy=false,syncAgain=false;
+async function syncCall(body){
+  const r=await fetch(SC.url.replace(/\/+$/,'')+'/sync',{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SC.key,...body})});
+  let j;try{j=await r.json()}catch(e){throw new Error('server replied '+r.status)}
+  if(!j.ok)throw new Error(j.error||('server replied '+r.status));return j}
+async function syncNow(manual){
+  if(!SC.url||!SC.key){if(manual)alert('Enter the server address and key first');return}
+  if(!navigator.onLine){st('Offline – will sync when online');if(manual)alert('No internet right now. It will sync when you are back online.');return}
+  if(syncBusy){syncAgain=true;return}
+  syncBusy=true;
+  try{
+    S.tx.forEach(x=>{if(!x.id)x.id=uid()});S.items.forEach(x=>{if(!x.id)x.id=uid()});
+    const cur=localMap(),changes=[];
+    for(const k in cur)if(SNAP[k]!==cur[k]){const [kind,id]=splitKey(k);changes.push({kind,id,data:JSON.parse(cur[k])})}
+    for(const k in SNAP)if(!(k in cur)){const [kind,id]=splitKey(k);changes.push({kind,id,deleted:true})}
+    let j,sent=0;
+    do{
+      const chunk=changes.slice(sent,sent+200);
+      j=await syncCall({since:SC.since||0,changes:chunk});
+      chunk.forEach(c=>{const k=c.kind+':'+c.id;if(c.deleted)delete SNAP[k];else SNAP[k]=cur[k]});
+      sent+=chunk.length;
+    }while(sent<changes.length);
+    // apply what other phones changed (never overwrite something edited here since the push)
+    const now=localMap();let changed=false;
+    for(const r of j.records){
+      const k=r.kind+':'+r.id,mine=now[k],pending=(mine!==undefined?mine:undefined)!==SNAP[k];
+      if(pending)continue;
+      const list=r.kind=='item'?'items':'tx';
+      if(r.deleted){
+        if(mine!==undefined){S[list]=S[list].filter(x=>x.id!=r.id);changed=true}
+        delete SNAP[k];
+      }else{
+        const js=JSON.stringify(r.data);
+        if(mine!==js){const i=S[list].findIndex(x=>x.id==r.id);if(i>=0)S[list][i]=r.data;else S[list].push(r.data);changed=true}
+        SNAP[k]=js;
+      }
+    }
+    saveSNAP();
+    SC.since=Math.max(0,j.now-5000);SC.last=new Date().toISOString();saveSC();
+    if(changed){try{localStorage.setItem('clinic',JSON.stringify(S))}catch(e){}}
+    const left=Object.keys(localMap()).some(k=>SNAP[k]!==localMap()[k])||Object.keys(SNAP).some(k=>!(k in localMap()));
+    if(!left)localStorage.removeItem('clinic_dirty');
+    st('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    if(manual)alert('Synced. '+changes.length+' sent, '+j.records.length+' checked.');
+    if(changed&&!document.activeElement.matches('input,textarea,select'))render();
+  }catch(e){st('Sync failed – will retry');if(manual)alert('Sync failed: '+e.message)}
+  syncBusy=false;
+  if(syncAgain){syncAgain=false;setTimeout(syncNow,500)}
+  else if(tab=='home'&&!document.activeElement.matches('input,textarea,select'))render();
+}
 async function restore(){
   if(!CFG.url||!CFG.key)return alert('Set up backup first');
   if(!confirm('Replace the data on this phone with the latest Drive backup?'))return;
@@ -83,11 +144,17 @@ async function restore(){
     S=j.data;localStorage.setItem('clinic',JSON.stringify(S));localStorage.removeItem('clinic_dirty');render();alert('Restored')}
   catch(e){alert('Restore failed: '+e.message)}
 }
-function bk(){return `<h2>Google Drive backup</h2><div class="card"><div class="k">Status: ${CFG.url&&CFG.key?(dirty()?'waiting to back up':'up to date'):'not set up'}${CFG.last?' · last '+new Date(CFG.last).toLocaleString():''}</div>
+function bkDrive(){return `<h2>Google Drive backup</h2><div class="card"><div class="k">Status: ${CFG.url&&CFG.key?(dirty()?'waiting to back up':'up to date'):'not set up'}${CFG.last?' · last '+new Date(CFG.last).toLocaleString():''}</div>
   <input placeholder="Backup URL (from Apps Script)" value="${esc(CFG.url||'')}" onchange="CFG.url=this.value.trim();saveCfg()">
   <input placeholder="Secret key" value="${esc(CFG.key||'')}" onchange="CFG.key=this.value.trim();saveCfg()">
   <div class="f2"><button onclick="backup(true)">Back up now</button><button class="g" onclick="restore()">Restore latest</button></div>
   <div class="sub">Backs up automatically seconds after every change, and as soon as internet returns. Runs while the app is open.</div></div>`}
+function bk(){const ok=SC.url&&SC.key;return `<h2>Online sync</h2><div class="card"><div class="k">Status: ${ok?(dirty()?'waiting to sync':'up to date'):'not set up'}${SC.last?' · last '+new Date(SC.last).toLocaleString():''}</div>
+  <input placeholder="Server address (https://...workers.dev)" value="${esc(SC.url||'')}" onchange="setSC('url',this.value)">
+  <input placeholder="Secret key" value="${esc(SC.key||'')}" onchange="setSC('key',this.value)">
+  <div class="f2"><button onclick="syncNow(true)">Sync now</button></div>
+  <div class="sub">Every phone with the same address and key shares the same records. Changes are sent within seconds and fetched when the app opens or comes back online. Deleting an entry deletes it on all phones.</div></div>
+  <details style="margin-top:8px"><summary class="sub">Old Google Drive backup (no longer used once online sync is on)</summary>${bkDrive()}</details>`}
 let LANG=localStorage.getItem('clinic_lang')||'en';
 const UR={"Home": "ہوم", "Ledger": "کھاتہ", "Stock": "اسٹاک", "People": "افراد", "Dashboard · all time": "ڈیش بورڈ · مجموعی", "Charts": "چارٹس", "Income vs expenses · last 6 months": "آمدنی بمقابلہ اخراجات · پچھلے 6 ماہ", "Where the money goes (all time)": "رقم کہاں خرچ ہوئی (مجموعی)", "Income sources (all time)": "آمدنی کے ذرائع (مجموعی)", "Low stock": "کم اسٹاک", "Expiring soon": "جلد ختم المیعاد", "Monthly summary": "ماہانہ خلاصہ", "INCOME": "آمدنی", "EXPENSES": "اخراجات", "Total income": "کل آمدنی", "Total expenses": "کل اخراجات", "Net (income − expenses)": "خالص (آمدنی − اخراجات)", "Fees": "فیس", "Meds Sold": "ادویات کی فروخت", "Restock": "اسٹاک کی خریداری", "Clinic Expenses": "کلینک کے اخراجات", "Staff Salaries": "عملے کی تنخواہیں", "Personal Withdrawals": "ذاتی رقم کی نکاسی", "Income": "آمدنی", "Expense": "خرچ", "All": "سب", "Amount": "رقم", "Note (optional)": "نوٹ (اختیاری)", "Add entry": "اندراج شامل کریں", "Save changes": "تبدیلیاں محفوظ کریں", "Cancel": "منسوخ", "No entries this month": "اس ماہ کوئی اندراج نہیں", "Receiver (who got the money)": "وصول کنندہ (رقم کس کو ملی)", "Staff member (optional)": "عملے کا رکن (اختیاری)", "Add item / medicine": "آئٹم / دوا شامل کریں", "Add item": "آئٹم شامل کریں", "Sell": "فروخت", "Edit": "ترمیم", "Opening quantity": "ابتدائی مقدار", "Buy price / unit": "خرید قیمت / یونٹ", "Sell price / unit": "فروخت قیمت / یونٹ", "Low-stock alert at": "کم اسٹاک الرٹ", "Expiry date (optional)": "میعاد ختم ہونے کی تاریخ (اختیاری)", "No items yet": "ابھی کوئی آئٹم نہیں", "Name (e.g. Paracetamol 500mg)": "نام (مثلاً پیراسیٹامول 500mg)", "Settings": "ترتیبات", "Language": "زبان", "Print report": "رپورٹ پرنٹ", "Print / save PDF": "پرنٹ / PDF", "App lock": "ایپ لاک", "Google Drive backup": "گوگل ڈرائیو بیک اپ", "Back up now": "ابھی بیک اپ کریں", "Restore latest": "تازہ ترین بحال کریں", "Spreadsheet import / export": "اسپریڈشیٹ امپورٹ / ایکسپورٹ", "Export ledger": "کھاتہ ایکسپورٹ", "Export stock": "اسٹاک ایکسپورٹ", "How it works": "یہ کیسے کام کرتا ہے", "Personal withdrawals by receiver": "ذاتی رقم کی نکاسی بلحاظ وصول کنندہ", "Staff salaries by person": "عملے کی تنخواہیں بلحاظ فرد", "Nothing recorded yet": "ابھی کچھ درج نہیں", "All stock levels OK": "تمام اسٹاک ٹھیک ہے", "Nothing expiring soon": "کچھ بھی جلد ختم المیعاد نہیں"};
 const L=k=>LANG=='ur'&&UR[k]||k;
@@ -140,7 +207,7 @@ function charts(){
 function printReport(){
   const m=month,l=S.tx.filter(x=>x.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date));
   $('#print').innerHTML=`<h1>Dr. Tariq Nawaz Clinic</h1><div class="sub">By Dr. Owais Nawaz Khan · Report: ${mName(m)}</div>${brk(l)}<h2>Entries</h2><div class="card">${l.map(x=>`<div class="row"><div>${x.date} · ${esc(x.cat)}${x.name?' · '+esc(x.name):''}<small>${esc(x.note||'')}</small></div><b>${x.type=='income'?'+':'−'}${fmt(x.amt)}</b></div>`).join('')||'No entries'}</div>`;
-  window.print();
+  if(window.AndroidBridge)AndroidBridge.print();else window.print();
 }
 function settings(){return `<h2>Settings</h2><div class="card"><div class="row"><span>Language</span><button class="g" onclick="setLang()">${LANG=='ur'?'English':'اردو'}</button></div>
   <b>Print report</b><div class="f2"><input type="month" value="${month}" onchange="month=this.value||month"><button onclick="printReport()">Print / save PDF</button></div></div>
@@ -152,7 +219,7 @@ function init(){
   try{const d=JSON.parse(localStorage.getItem('clinic'));if(d&&d.tx)S=d}catch(e){}
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
-  showLock();render();st(CFG.url?'Backup on':'Backup not set up');if(dirty())backup();
+  showLock();render();st(SC.url?'Online sync on':(CFG.url?'Backup on':'Not synced'));if(SC.url&&SC.key)syncNow();else if(dirty())backup();
 }
 const sum=(l,t)=>l.filter(x=>x.type==t).reduce((a,x)=>a+x.amt,0);
 const inMonth=()=>S.tx.filter(x=>x.date.startsWith(month));
@@ -246,7 +313,7 @@ function data(){
   <p><b>People:</b> withdrawals grouped by receiver and salaries grouped by person, with monthly and all-time totals.</p>
   <p><b>Stock:</b> give each medicine a buy price and a sell price. <b>Sell</b> reduces the count and logs Meds Sold income; <b>Restock</b> adds to the count and logs a Restock expense. Deleting such an entry puts the count back.</p>
   <p><b>Spreadsheets:</b> exports are .csv files for Excel, Numbers or Google Sheets. Ledger columns: id, date (YYYY-MM-DD), type (income/expense), category, name, amount, note. Stock columns: id, name, unit, qty, min, cost (buy price), price (sell price), exp (expiry date, optional). Import adds new rows and skips ones already present; stock items with the same name or id are updated.</p>
-  <p><b>Saving:</b> data is stored on this phone and copied to your Google Drive automatically when online.</p></div>`;
+  <p><b>Saving:</b> data is stored on this phone and synced to your online server automatically when online.</p></div>`;
 }
 const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
 const toCSV=(h,rows)=>'\ufeff'+[h.join(','),...rows.map(r=>h.map(k=>q(r[k])).join(','))].join('\r\n');
@@ -259,6 +326,7 @@ function parseCSV(t){t=t.replace(/^\ufeff/,'');const out=[];let r=[],c='',inq=fa
   r.push(c);if(r.some(x=>x!==''))out.push(r);return out}
 function exp(kind){
   const csv=kind=='tx'?toCSV(['id','date','type','category','name','amount','note'],S.tx.map(x=>({...x,amount:x.amt,category:x.cat}))):toCSV(['id','name','unit','qty','min','cost','price','exp'],S.items);
+  const fn=(kind=='tx'?'clinic-ledger-':'clinic-stock-')+today()+'.csv';if(window.AndroidBridge){AndroidBridge.saveText(fn,csv);st('Exported');return}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download=(kind=='tx'?'clinic-ledger-':'clinic-stock-')+today()+'.csv';document.body.appendChild(a);a.click();a.remove();st('Exported');
 }
